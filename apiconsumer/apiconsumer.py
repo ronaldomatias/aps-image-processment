@@ -1,4 +1,8 @@
 import requests
 
-def comunicateApi():
-    return requests.get("http://localhost:8080/send-message")
+def comunicateApi(imagePath):
+    return requests.post("http://localhost:8080/api/send-message", json = createJson(imagePath))
+
+
+def createJson(imagePath):
+    return {'imagePath': imagePath}

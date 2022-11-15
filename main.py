@@ -1,3 +1,4 @@
 import initializer.run as run
 
-run.init()
+if __name__ == '__main__':
+    run.init()

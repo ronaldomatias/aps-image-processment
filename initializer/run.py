@@ -1,51 +1,46 @@
 import cv2
-import apiconsumer.apiconsumer as apiconsumer
+import apiconsumer.apiconsumer as api_consumer
+import util.drawerutil as drawer
+import time
+import uuid
 
-def init():
-    # CARREGA AS CLASSES
-    class_name = ['gun']
 
-    # CAPTURA DO VÍDEO
-    captureService = cv2.VideoCapture(0)
-
-    # CARREGANDO OS PESOS DA REDE NEURAL
-    net = cv2.dnn.readNet("config/yolo.weights", "config/yolo.cfg")
-
-    # SETANDO OS PARÂMETROS DA REDE NEURAL
-    model = cv2.dnn_DetectionModel(net)
-    model.setInputParams(size=(416, 416), scale=1 / 255)
-
+def init(soma=None):
     send_message = True
-    # LENDO OS FRAMES DO VÍDEO
+    timer = 0
+
+    capture_service = cv2.VideoCapture("ciclista.mp4")
+
+    net = cv2.dnn.readNet("config/yolo.weights", "config/yolo.cfg")
+    model = cv2.dnn_DetectionModel(net)
+    model.setInputParams(size=(320, 320), scale=1 / 255)  # size precisa ser múltiplo de 32.
+
     while cv2.waitKey(1) != 27:
 
-        # CAPTURA DO FRAME
-        frameExists, frame = captureService.read()
+        frame_exists, frame = capture_service.read()
 
-        if not frameExists:
-            break
+        start_time = time.time()
+        classes, acuracias, boxes = model.detect(frame, 0.7, 0.2)
+        end_time = time.time()
+        timer += end_time - start_time
 
-        classes, precisoes, boxes = model.detect(frame, 0.1, 0.2)
+        for (classid, acuracia, box) in zip(classes, acuracias, boxes):
+            print(acuracia)
+            box_title = f"gun: {acuracia}"
+            drawer.draw_rectangle(frame, box, box_title)
 
-        # PERCORRER TODAS AS DETECÇÕES
-        for (classid, precisao, box) in zip(classes, precisoes, boxes):
-            # GERANDO UMA COR PARA A CLASSE
-            color = (0, 255, 255)
-
-            # PEGANDO O NOME DA CLASSE PELO ID E SEU SCORE DE ACURÁCIA
-            label = f"{class_name[0]} : {precisao}"
-
-            # DESENHANDO A BOX DA DETECÇÃO
-            cv2.rectangle(frame, box, color, 2)
-
-            # ESCREVENDO O NOME DA CLASSE EM CIMA DA BOX DO OBJETO
-            cv2.putText(frame, label, (box[0], box[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-
-            if send_message:
-                apiconsumer.comunicateApi()
+            if (acuracia > 0.75) & send_message:
+                imagePath = f"/home/ronaldo/PycharmProjects/log-images/{str(uuid.uuid1())}.jpg"
+                cv2.imwrite(imagePath, frame)
+                api_consumer.comunicateApi(imagePath)
                 send_message = False
+
+        # A CADA 5 MINUTOS É LIBERADO O ENVIO DE UMA NOVA MENSAGEM
+        if timer > 300:
+            timer = 0
+            send_message = True
 
         cv2.imshow("Webcam", frame)
 
-    captureService.release()
+    capture_service.release()
     cv2.destroyAllWindows()
