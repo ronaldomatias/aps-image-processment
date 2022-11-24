@@ -10,11 +10,11 @@ def init():
     send_message = True
     timer = 0
 
-    capture_service = cv2.VideoCapture("videos/atira.mp4")
+    capture_service = cv2.VideoCapture("videos/soldadoss.mp4")
 
     net = cv2.dnn.readNetFromDarknet("config/yolo.cfg", "config/yolo.weights")
     model = cv2.dnn_DetectionModel(net)
-    model.setInputParams(size=(320, 320), scale=1/255)  # size precisa ser múltiplo de 32.
+    model.setInputParams(size=(320, 320), scale=1/255)  # size precisa ser múltiplo de 32.s
 
     while cv2.waitKey(1) != 27:
 
@@ -26,15 +26,14 @@ def init():
         timer += end_time - start_time
 
         for (classid, acuracia, box) in zip(classes, acuracias, boxes):
-            print(acuracia)
-            box_label = f"gun: {acuracia}"
-            drawer.draw_rectangle(frame, box, box_label)
+            drawer.draw_rectangle(frame, box, f"gun: {acuracia}")
 
             if (acuracia > 0.75) & send_message:
                 date = dateUtil.getDateNow()
                 imagePath = f"/home/ronaldo/PycharmProjects/log-images/{str(uuid.uuid1())}.jpg"
                 cv2.imwrite(imagePath, frame)
                 api_consumer.comunicateApi(imagePath, date)
+                print("Mensagem enviada.")
                 send_message = False
 
         # A CADA 5 MINUTOS É LIBERADO O ENVIO DE UMA NOVA MENSAGEM
